@@ -1790,7 +1790,7 @@ pcall(function()
     LeftGroup:AddDivider()
 
     LeftGroup:AddButton({
-        Text = "Change Race to Ghoul [ 2,500 Frags ]",
+        Text = "Change Race to Ghoul [ Free ]",
         Func = function()
             pcall(function()
                 local commF = game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("CommF_")
@@ -1801,12 +1801,12 @@ pcall(function()
     })
 
     LeftGroup:AddButton({
-        Text = "Change Race to Cyborg",
+        Text = "Change Race to Cyborg [ 2,500 Frags ]",
         Func = function()
             pcall(function()
                 local commF = game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("CommF_")
                 commF:InvokeServer("CyborgTrainer", "Buy")
-                Notify("Shop", "Changed race to Cyborg", 3)
+                Notify("Shop", "Changed race to Cyborg (2,500 Frags)", 3)
             end)
         end
     })
