@@ -1988,6 +1988,17 @@ pcall(function()
             end)
         end
     })
+
+    RightGroup:AddButton({
+        Text = "Buy Advanced Combat [ Secret Quest ]",
+        Func = function()
+            pcall(function()
+                local commF = game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("CommF_")
+                commF:InvokeServer("SetSecretStyle", "Advanced Combat")
+                Notify("Shop", "Purchased / Equipped Advanced Combat", 3)
+            end)
+        end
+    })
 end)
 
 -- ============================================================
