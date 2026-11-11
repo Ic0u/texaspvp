@@ -363,6 +363,9 @@ local Window = Library:CreateWindow({
     Icon = APP_ICON,
     NotifySide = "Right",
     ShowCustomCursor = false,
+    Size = UDim2.fromOffset(630, 520),
+    MinSize = Vector2.new(500, 420),
+    Resizable = true,
 })
 
 local function Notify(title, desc, duration)
@@ -396,6 +399,109 @@ local Tabs = {
     Macro = Window:AddTab("Macro", "bot"),
     Settings = Window:AddTab("Settings", "settings"),
 }
+
+-- Ensure tabs scrolling frame is visible and draggable on mobile / compact screens
+local function ConfigureTabsScrollingFrame()
+    pcall(function()
+        local firstButton = Library.TabButtons and Library.TabButtons[1]
+        local tabsScrollFrame = firstButton and firstButton.Parent
+        if not tabsScrollFrame and Tabs.Home and Tabs.Home.Button then
+            tabsScrollFrame = Tabs.Home.Button.Parent
+        end
+
+        if tabsScrollFrame and tabsScrollFrame:IsA("ScrollingFrame") then
+            tabsScrollFrame.ScrollBarThickness = 4
+            tabsScrollFrame.ScrollBarImageTransparency = 0.2
+            tabsScrollFrame.ScrollBarImageColor3 = APP_ACCENT
+            tabsScrollFrame.ScrollingEnabled = true
+        end
+    end)
+end
+task.spawn(ConfigureTabsScrollingFrame)
+
+local function FormatWithCommas(n)
+    local num = tonumber(n)
+    if not num then return tostring(n) end
+    local formatted = tostring(math.floor(num))
+    local k
+    while true do
+        formatted, k = string.gsub(formatted, "^(-?%d+)(%d%d%d)", '%1,%2')
+        if k == 0 then break end
+    end
+    return formatted
+end
+
+local function GetPlayerBounty()
+    local bVal = nil
+
+    -- 1. Check leaderstats (Standard Blox Fruits storage)
+    local ls = lp:FindFirstChild("leaderstats")
+    if ls then
+        for _, child in ipairs(ls:GetChildren()) do
+            local n = child.Name:lower()
+            if n:find("bounty") or n:find("honor") then
+                if child:IsA("ValueBase") then
+                    bVal = child.Value
+                    break
+                end
+            end
+        end
+    end
+
+    -- 2. Check Data folder fallback
+    if not bVal then
+        local data = lp:FindFirstChild("Data")
+        if data then
+            for _, child in ipairs(data:GetChildren()) do
+                local n = child.Name:lower()
+                if n:find("bounty") or n:find("honor") then
+                    if child:IsA("ValueBase") then
+                        bVal = child.Value
+                        break
+                    end
+                end
+            end
+        end
+    end
+
+    -- 3. Check player attributes
+    if not bVal then
+        pcall(function()
+            for attrName, attrVal in pairs(lp:GetAttributes()) do
+                local n = tostring(attrName):lower()
+                if n:find("bounty") or n:find("honor") then
+                    bVal = attrVal
+                    break
+                end
+            end
+        end)
+    end
+
+    -- 4. Check in-game PlayerGui Main HUD TextLabels
+    if not bVal then
+        pcall(function()
+            local pg = lp:FindFirstChild("PlayerGui")
+            local main = pg and pg:FindFirstChild("Main")
+            if main then
+                for _, desc in ipairs(main:GetDescendants()) do
+                    if desc:IsA("TextLabel") then
+                        local pName = desc.Parent and desc.Parent.Name:lower() or ""
+                        local dName = desc.Name:lower()
+                        if (dName:find("bounty") or pName:find("bounty") or dName:find("honor") or pName:find("honor")) then
+                            local numStr = desc.Text:match("[%d,.]+")
+                            if numStr and #numStr >= 4 then
+                                bVal = numStr
+                                break
+                            end
+                        end
+                    end
+                end
+            end
+        end)
+    end
+
+    return bVal
+end
 
 -- ============================================================
 -- 1. HOME TAB (PLAYER PROFILE & QUICK ACTIONS)
@@ -441,27 +547,72 @@ do
 
         while not Library.Unloaded do
             pcall(function()
-                -- Live stats
-                local data = lp:FindFirstChild("Data") or lp:FindFirstChild("leaderstats")
-                if data then
-                    local lvl = data:FindFirstChild("Level")
-                    if lvl then lvlLabel:SetText("Level: " .. tostring(lvl.Value)) end
+                local data = lp:FindFirstChild("Data")
+                local ls = lp:FindFirstChild("leaderstats")
 
-                    local bnty = data:FindFirstChild("Bounty") or data:FindFirstChild("Bounty/Honor")
-                    if bnty then bountyLabel:SetText("Bounty / Honor: " .. tostring(bnty.Value)) end
+                -- 1. Level
+                local lvl = nil
+                if data and data:FindFirstChild("Level") then
+                    lvl = data.Level.Value
+                elseif ls and ls:FindFirstChild("Level") then
+                    lvl = ls.Level.Value
+                elseif lp:GetAttribute("Level") then
+                    lvl = lp:GetAttribute("Level")
+                end
+                if lvl then lvlLabel:SetText("Level: " .. tostring(lvl)) end
 
-                    local beli = data:FindFirstChild("Beli")
-                    if beli then beliLabel:SetText("Beli: $" .. tostring(beli.Value)) end
-
-                    local df = data:FindFirstChild("DevilFruit")
-                    if df then fruitLabel:SetText("Devil Fruit: " .. tostring(df.Value):gsub("-%w+", "")) end
+                -- 2. Bounty / Honor (Dedicated Deep Resolver)
+                local bVal = GetPlayerBounty()
+                if bVal then
+                    local num = tonumber(tostring(bVal):gsub("[^%d]", ""))
+                    if num and num > 0 then
+                        if num >= 1000000 then
+                            bountyLabel:SetText("Bounty / Honor: $" .. FormatWithCommas(num) .. string.format(" (%.2fM)", num / 1000000))
+                        else
+                            bountyLabel:SetText("Bounty / Honor: $" .. FormatWithCommas(num))
+                        end
+                    else
+                        bountyLabel:SetText("Bounty / Honor: " .. tostring(bVal))
+                    end
+                else
+                    bountyLabel:SetText("Bounty / Honor: --")
                 end
 
+                -- 3. Beli
+                local beli = nil
+                if data and data:FindFirstChild("Beli") then
+                    beli = data.Beli.Value
+                elseif ls and ls:FindFirstChild("Beli") then
+                    beli = ls.Beli.Value
+                end
+                if beli then
+                    local num = tonumber(beli)
+                    if num then
+                        beliLabel:SetText("Beli: $" .. FormatWithCommas(num))
+                    else
+                        beliLabel:SetText("Beli: $" .. tostring(beli))
+                    end
+                end
+
+                -- 4. Devil Fruit
+                local df = nil
+                if data and data:FindFirstChild("DevilFruit") then
+                    df = tostring(data.DevilFruit.Value):gsub("-%w+", "")
+                elseif lp:GetAttribute("DevilFruit") or lp:GetAttribute("Fruit") then
+                    df = tostring(lp:GetAttribute("DevilFruit") or lp:GetAttribute("Fruit")):gsub("-%w+", "")
+                end
+                if df and #df > 0 and df ~= "None" then
+                    fruitLabel:SetText("Devil Fruit: " .. df)
+                else
+                    fruitLabel:SetText("Devil Fruit: None")
+                end
+
+                -- 5. Faction / Team
                 if lp.Team then
                     teamLabel:SetText("Faction: " .. tostring(lp.Team.Name))
                 end
 
-                -- Ping
+                -- 6. Network Ping
                 local ping = 0
                 pcall(function()
                     ping = math.floor(Stats.Network.ServerStatsItem["Data Ping"]:GetValue())
@@ -1646,6 +1797,14 @@ do
         SaveManager:LoadAutoloadConfig()
     end)
 end
+
+-- Ensure UI opens at Home tab with sidebar scrolled to top
+pcall(function()
+    if Tabs.Home and Tabs.Home.Show then
+        Tabs.Home:Show()
+    end
+    ConfigureTabsScrollingFrame()
+end)
 
 -- ============================================================
 -- COMPLETION NOTIFICATION
