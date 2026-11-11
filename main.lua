@@ -1790,7 +1790,7 @@ pcall(function()
     LeftGroup:AddDivider()
 
     LeftGroup:AddButton({
-        Text = "Change Race to Ghoul [ Free ]",
+        Text = "Change Race to Ghoul",
         Func = function()
             pcall(function()
                 local commF = game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("CommF_")
@@ -1990,7 +1990,7 @@ pcall(function()
     })
 
     RightGroup:AddButton({
-        Text = "Buy Advanced Combat [ Secret Quest ]",
+        Text = "Buy Advanced Combat",
         Func = function()
             pcall(function()
                 local commF = game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("CommF_")
