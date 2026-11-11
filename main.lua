@@ -397,6 +397,7 @@ local Tabs = {
     Soru = Window:AddTab("Soru", "zap"),
     Visuals = Window:AddTab("Visuals", "eye"),
     Macro = Window:AddTab("Macro", "bot"),
+    Shop = Window:AddTab("Shop", "shopping-bag"),
     Settings = Window:AddTab("Settings", "settings"),
 }
 
@@ -1738,7 +1739,259 @@ pcall(function()
 end)
 
 -- ============================================================
--- 8. SETTINGS & CONFIG TAB (THEMEMANAGER & SAVEMANAGER)
+-- 8. SHOP TAB (RACES, STATS & FIGHTING STYLES)
+-- ============================================================
+pcall(function()
+    local LeftGroup = Tabs.Shop:AddLeftGroupbox("Character & Races")
+    local RightGroup = Tabs.Shop:AddRightGroupbox("Fighting Styles")
+
+    local function IsThirdSea()
+        if game.PlaceId == 7449423635 then return true end
+        local ws = game:GetService("Workspace")
+        if ws:FindFirstChild("Map") then
+            local map = ws.Map
+            if map:FindFirstChild("Turtle") or map:FindFirstChild("Floating Turtle")
+                or map:FindFirstChild("Port Town") or map:FindFirstChild("Hydra")
+                or map:FindFirstChild("Haunted Castle") or map:FindFirstChild("Tiki Outpost") then
+                return true
+            end
+        end
+        if ws:FindFirstChild("NPCs") and ws.NPCs:FindFirstChild("Dragon Wizard") then
+            return true
+        end
+        return false
+    end
+
+    -- --- LEFT GROUP: Character & Races ---
+    LeftGroup:AddButton({
+        Text = "Refund Stats [ 2,500 Frags ]",
+        Func = function()
+            pcall(function()
+                local commF = game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("CommF_")
+                commF:InvokeServer("BlackbeardReward", "Refund", "1")
+                commF:InvokeServer("BlackbeardReward", "Refund", "2")
+                Notify("Shop", "Purchased Stats Refund (2,500 Frags)", 3)
+            end)
+        end
+    })
+
+    LeftGroup:AddButton({
+        Text = "Races Reroll [ 3,000 Frags ]",
+        Func = function()
+            pcall(function()
+                local commF = game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("CommF_")
+                commF:InvokeServer("BlackbeardReward", "Reroll", "1")
+                commF:InvokeServer("BlackbeardReward", "Reroll", "2")
+                Notify("Shop", "Purchased Race Reroll (3,000 Frags)", 3)
+            end)
+        end
+    })
+
+    LeftGroup:AddDivider()
+
+    LeftGroup:AddButton({
+        Text = "Change Race to Ghoul [ 2,500 Frags ]",
+        Func = function()
+            pcall(function()
+                local commF = game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("CommF_")
+                commF:InvokeServer("Ectoplasm", "Change", 4)
+                Notify("Shop", "Changed race to Ghoul", 3)
+            end)
+        end
+    })
+
+    LeftGroup:AddButton({
+        Text = "Change Race to Cyborg",
+        Func = function()
+            pcall(function()
+                local commF = game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("CommF_")
+                commF:InvokeServer("CyborgTrainer", "Buy")
+                Notify("Shop", "Changed race to Cyborg", 3)
+            end)
+        end
+    })
+
+    LeftGroup:AddButton({
+        Text = "Change Race to Draco",
+        Func = function()
+            if not IsThirdSea() then
+                Notify("Shop", "Need to be at Third Sea to buy Draco race!", 4)
+                return
+            end
+
+            Notify("Shop", "Traveling to Dragon Wizard...", 3)
+            task.spawn(function()
+                pcall(function()
+                    local rep = game:GetService("ReplicatedStorage")
+                    local commF = rep:WaitForChild("Remotes"):WaitForChild("CommF_")
+                    commF:InvokeServer("requestEntrance", Vector3.new(5661.5322265625, 1013.0907592773438, -334.9649963378906))
+
+                    local targetCF = CFrame.new(5814.42724609375, 1208.3267822265625, 884.5785522460938)
+                    local targetPos = targetCF.Position
+                    local char = lp.Character or lp.CharacterAdded:Wait()
+                    local hrp = char:WaitForChild("HumanoidRootPart", 5)
+                    if not hrp then return end
+
+                    local dist = (hrp.Position - targetPos).Magnitude
+                    if dist > 5 then
+                        local speed = 350
+                        local duration = math.clamp(dist / speed, 0.5, 10)
+                        local tw = TweenService:Create(hrp, TweenInfo.new(duration, Enum.EasingStyle.Linear), { CFrame = targetCF })
+                        tw:Play()
+
+                        local startTime = os.clock()
+                        while (hrp.Position - targetPos).Magnitude > 10 and os.clock() - startTime < 12 do
+                            task.wait(0.1)
+                        end
+                        tw:Cancel()
+                    end
+                    hrp.CFrame = targetCF
+                    task.wait(0.4)
+
+                    local netModule = rep:FindFirstChild("Modules") and rep.Modules:FindFirstChild("Net")
+                    local dragonQuestRF = netModule and netModule:FindFirstChild("RF/InteractDragonQuest")
+                    if dragonQuestRF then
+                        dragonQuestRF:InvokeServer({
+                            NPC = "Dragon Wizard",
+                            Command = "DragonRace"
+                        })
+                        Notify("Shop", "Interacted with Dragon Wizard for Draco race!", 4)
+                    else
+                        Notify("Shop", "RF/InteractDragonQuest remote not found", 3)
+                    end
+                end)
+            end)
+        end
+    })
+
+    -- --- RIGHT GROUP: Fighting Styles ---
+    RightGroup:AddButton({
+        Text = "Buy Black Leg [ $150,000 ]",
+        Func = function()
+            pcall(function()
+                local commF = game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("CommF_")
+                commF:InvokeServer("BuyBlackLeg")
+                Notify("Shop", "Purchased Black Leg", 3)
+            end)
+        end
+    })
+
+    RightGroup:AddButton({
+        Text = "Buy Electro [ $550,000 ]",
+        Func = function()
+            pcall(function()
+                local commF = game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("CommF_")
+                commF:InvokeServer("BuyElectro")
+                Notify("Shop", "Purchased Electro", 3)
+            end)
+        end
+    })
+
+    RightGroup:AddButton({
+        Text = "Buy Water Kung Fu [ $750,000 ]",
+        Func = function()
+            pcall(function()
+                local commF = game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("CommF_")
+                commF:InvokeServer("BuyFishmanKarate")
+                Notify("Shop", "Purchased Water Kung Fu", 3)
+            end)
+        end
+    })
+
+    RightGroup:AddButton({
+        Text = "Buy Dragon Claw [ 1,500 Frags ]",
+        Func = function()
+            pcall(function()
+                local commF = game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("CommF_")
+                commF:InvokeServer("BlackbeardReward", "DragonClaw", "1")
+                commF:InvokeServer("BlackbeardReward", "DragonClaw", "2")
+                Notify("Shop", "Purchased Dragon Claw (1,500 Frags)", 3)
+            end)
+        end
+    })
+
+    RightGroup:AddButton({
+        Text = "Buy Superhuman [ $3,000,000 ]",
+        Func = function()
+            pcall(function()
+                local commF = game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("CommF_")
+                commF:InvokeServer("BuySuperhuman")
+                Notify("Shop", "Purchased Superhuman", 3)
+            end)
+        end
+    })
+
+    RightGroup:AddButton({
+        Text = "Buy Death Step [ 5,000 Frags + $5,000,000 ]",
+        Func = function()
+            pcall(function()
+                local commF = game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("CommF_")
+                commF:InvokeServer("BuyDeathStep")
+                Notify("Shop", "Purchased Death Step", 3)
+            end)
+        end
+    })
+
+    RightGroup:AddButton({
+        Text = "Buy Sharkman Karate [ 5,000 Frags + $2,500,000 ]",
+        Func = function()
+            pcall(function()
+                local commF = game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("CommF_")
+                commF:InvokeServer("BuySharkmanKarate", true)
+                commF:InvokeServer("BuySharkmanKarate")
+                Notify("Shop", "Purchased Sharkman Karate", 3)
+            end)
+        end
+    })
+
+    RightGroup:AddButton({
+        Text = "Buy Electric Claw [ 5,000 Frags + $3,000,000 ]",
+        Func = function()
+            pcall(function()
+                local commF = game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("CommF_")
+                commF:InvokeServer("BuyElectricClaw")
+                Notify("Shop", "Purchased Electric Claw", 3)
+            end)
+        end
+    })
+
+    RightGroup:AddButton({
+        Text = "Buy Dragon Talon [ 5,000 Frags + $3,000,000 ]",
+        Func = function()
+            pcall(function()
+                local commF = game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("CommF_")
+                commF:InvokeServer("BuyDragonTalon")
+                Notify("Shop", "Purchased Dragon Talon", 3)
+            end)
+        end
+    })
+
+    RightGroup:AddButton({
+        Text = "Buy Godhuman [ 5,000 Frags + $5,000,000 ]",
+        Func = function()
+            pcall(function()
+                local commF = game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("CommF_")
+                commF:InvokeServer("BuyGodhuman")
+                Notify("Shop", "Purchased Godhuman", 3)
+            end)
+        end
+    })
+
+    RightGroup:AddButton({
+        Text = "Buy Sanguine Art [ 5,000 Frags + $5,000,000 ]",
+        Func = function()
+            pcall(function()
+                local commF = game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("CommF_")
+                commF:InvokeServer("BuySanguineArt", true)
+                commF:InvokeServer("BuySanguineArt")
+                Notify("Shop", "Purchased Sanguine Art", 3)
+            end)
+        end
+    })
+end)
+
+-- ============================================================
+-- 9. SETTINGS & CONFIG TAB (THEMEMANAGER & SAVEMANAGER)
 -- ============================================================
 pcall(function()
     local LeftGroup = Tabs.Settings:AddLeftGroupbox("Menu & Engine Tweaks")
