@@ -30,7 +30,7 @@ local APP_ACCENT = Color3.fromRGB(236, 179, 61) -- #ECB33D
 pcall(function()
     if Color3.fromHex then APP_ACCENT = Color3.fromHex("#ECB33D") end
 end)
-local APP_ICON = 9712354122
+local APP_ICON = 9712354092
 local GITHUB_REPO_RAW = "https://raw.githubusercontent.com/Ic0u/texaspvp/main"
 
 local SafeHttpGet = function(url)
@@ -506,7 +506,7 @@ end
 -- ============================================================
 -- 1. HOME TAB (PLAYER PROFILE & QUICK ACTIONS)
 -- ============================================================
-do
+pcall(function()
     local LeftGroup = Tabs.Home:AddLeftGroupbox("Player Profile")
     local RightGroup = Tabs.Home:AddRightGroupbox("Quick Actions & Server")
 
@@ -688,12 +688,12 @@ do
 
     RightGroup:AddLabel("TEXAS CHICKEN™ • Obsidian Edition", true)
     RightGroup:AddLabel("High-performance modular PvP suite", true)
-end
+end)
 
 -- ============================================================
 -- 2. COMBAT TAB (SILENT AIM, FOV CIRCLE, TRACERS & BLACKLIST)
 -- ============================================================
-do
+pcall(function()
     local LeftGroup = Tabs.Combat:AddLeftGroupbox("Silent Aim Settings")
     local RightGroup = Tabs.Combat:AddRightGroupbox("FOV Circle & Tracers")
 
@@ -963,12 +963,12 @@ do
             end
         end
     })
-end
+end)
 
 -- ============================================================
 -- 3. PVP COMBAT TAB (PASSIVES, FAST ATTACK & COMBAT TECH)
 -- ============================================================
-do
+pcall(function()
     local LeftGroup = Tabs.PvP:AddLeftGroupbox("Auto Combat Passives")
     local RightGroup = Tabs.PvP:AddRightGroupbox("Combat Tech & Lock")
 
@@ -1077,21 +1077,25 @@ do
             if ew then ew.SetSanguineWidgetVisible(val) end
             Notify("PvP", "Sanguine Boost: " .. (val and "Ready" or "Inactive"))
         end
-    }):AddKeyPicker("SanguineKey", {
-        Default = "Z",
-        Mode = "Press",
+    })
+
+    RightGroup:AddButton({
         Text = "Trigger Sanguine Boost",
-        Callback = function()
+        Func = function()
             local sb = M.getSanguineBoost()
             if sb then sb.Trigger() end
         end
+    }):AddKeyPicker("SanguineKey", {
+        Default = "Z",
+        Mode = "Press",
+        Text = "Trigger Sanguine Boost"
     })
-end
+end)
 
 -- ============================================================
 -- 4. MOBILITY TAB (FLIGHT, SPEED, NOCLIP & WATER WALKING)
 -- ============================================================
-do
+pcall(function()
     local LeftGroup = Tabs.Mobility:AddLeftGroupbox("Flight & Speed")
     local RightGroup = Tabs.Mobility:AddRightGroupbox("Physics & Environment")
 
@@ -1234,12 +1238,12 @@ do
             if mm then mm.SetAntiLava(val) end
         end
     })
-end
+end)
 
 -- ============================================================
 -- 5. SORU TAB (FLASHSTEP COOLDOWN BYPASS & COMBO INTEGRATION)
 -- ============================================================
-do
+pcall(function()
     local LeftGroup = Tabs.Soru:AddLeftGroupbox("Flashstep Engine")
     local RightGroup = Tabs.Soru:AddRightGroupbox("Soru Skill Combo")
 
@@ -1338,12 +1342,12 @@ do
             if sm then sm.SkillDelay = val / 1000 end
         end
     })
-end
+end)
 
 -- ============================================================
 -- 6. VISUALS / ESP TAB (PVP RADAR, CHAMS & SCREEN TRACERS)
 -- ============================================================
-do
+pcall(function()
     local LeftGroup = Tabs.Visuals:AddLeftGroupbox("Player ESP Elements")
     local RightGroup = Tabs.Visuals:AddRightGroupbox("Chams & Tracers")
 
@@ -1524,12 +1528,12 @@ do
             Notify("ESP", "All ESP visuals disabled", 2)
         end
     })
-end
+end)
 
 -- ============================================================
 -- 7. MACRO TAB (AUTONOMOUS COMBO ENGINE)
 -- ============================================================
-do
+pcall(function()
     local LeftGroup = Tabs.Macro:AddLeftGroupbox("Macro Controller")
     local RightGroup = Tabs.Macro:AddRightGroupbox("Combo Blocks (1-6)")
 
@@ -1656,12 +1660,12 @@ do
 
         if b < 6 then RightGroup:AddDivider() end
     end
-end
+end)
 
 -- ============================================================
 -- 8. SETTINGS & CONFIG TAB (THEMEMANAGER & SAVEMANAGER)
 -- ============================================================
-do
+pcall(function()
     local LeftGroup = Tabs.Settings:AddLeftGroupbox("Menu & Engine Tweaks")
     local ct = M.getClientTweaks()
 
@@ -1796,7 +1800,7 @@ do
         ThemeManager:ApplyTheme("Texas Chicken")
         SaveManager:LoadAutoloadConfig()
     end)
-end
+end)
 
 -- Ensure UI opens at Home tab with sidebar scrolled to top
 pcall(function()

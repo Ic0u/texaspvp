@@ -5,7 +5,7 @@ High-performance, modular Roblox script architecture powered by the **Obsidian U
 ## Architecture
 
 - **UI Framework**: Obsidian UI Library (Linoria-derived clean layout, custom cursors, notifications, and mobile support).
-- **Branding**: Title `  TEXAS CHICKEN™ `, Main Accent `#ECB33D`, and Icon Asset `9712354122`.
+- **Branding**: Title `  TEXAS CHICKEN™ `, Main Accent `#ECB33D`, and Icon Asset `9712354092`.
 - **Config & Theme Engine**: Native `SaveManager` (autoload configs, profile exports) and `ThemeManager` (live palette customization with built-in "Texas Chicken" preset).
 - **Navigation**: Lucide icon dock supporting dual-column groupbox layouts.
 - **Tabs**:
