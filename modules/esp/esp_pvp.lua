@@ -107,10 +107,14 @@ local function getPlayerData(player)
                 fruit = tostring(df.Value):gsub("-%w+", "")
             end
         end
-        local ls = player:FindFirstChild("leaderstats")
+        local ls = player:FindFirstChild("leaderstats") or player:FindFirstChild("Leaderstats")
         if ls then
-            local b = ls:FindFirstChild("Bounty/Honor") or ls:FindFirstChild("Bounty")
-            if b then bounty = b.Value end
+            local b = ls:FindFirstChild("Bounty/Honor") or ls:FindFirstChild("Bounty / Honor") or ls:FindFirstChild("Bounty") or ls:FindFirstChild("Honor")
+            if b and b.Value then bounty = b.Value end
+        end
+        if bounty == 0 and data then
+            local b = data:FindFirstChild("Bounty/Honor") or data:FindFirstChild("Bounty / Honor") or data:FindFirstChild("Bounty") or data:FindFirstChild("Honor")
+            if b and b.Value then bounty = b.Value end
         end
     end)
     return level, fruit, bounty

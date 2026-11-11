@@ -420,87 +420,144 @@ end
 task.spawn(ConfigureTabsScrollingFrame)
 
 local function FormatWithCommas(n)
-    local num = tonumber(n)
+    if n == nil then return "0" end
+    local raw = tostring(n):gsub("[^%d]", "")
+    local num = tonumber(raw)
     if not num then return tostring(n) end
     local formatted = tostring(math.floor(num))
-    local k
     while true do
-        formatted, k = string.gsub(formatted, "^(-?%d+)(%d%d%d)", '%1,%2')
+        local res, k = string.gsub(formatted, "^(-?%d+)(%d%d%d)", "%1,%2")
+        formatted = res
         if k == 0 then break end
     end
     return formatted
 end
 
 local function GetPlayerBounty()
-    local bVal = nil
+    local function ReadVal(inst)
+        if not inst then return nil end
+        local ok, val = pcall(function() return inst.Value end)
+        if ok and val ~= nil and tostring(val) ~= "" then
+            return val
+        end
+        return nil
+    end
 
-    -- 1. Check leaderstats (Standard Blox Fruits storage)
-    local ls = lp:FindFirstChild("leaderstats")
+    -- 1. Check leaderstats (standard Blox Fruits location: leaderstats["Bounty/Honor"] or ["Bounty"])
+    local ls = lp:FindFirstChild("leaderstats") or lp:FindFirstChild("Leaderstats")
     if ls then
+        local direct = ls:FindFirstChild("Bounty/Honor")
+            or ls:FindFirstChild("Bounty / Honor")
+            or ls:FindFirstChild("Bounty")
+            or ls:FindFirstChild("Honor")
+            or ls:FindFirstChild("bounty")
+            or ls:FindFirstChild("honor")
+        local val = ReadVal(direct)
+        if val ~= nil then return val end
+
         for _, child in ipairs(ls:GetChildren()) do
             local n = child.Name:lower()
+            if n:find("bounty") or n:find("honor") or n:find("b/h") then
+                local cv = ReadVal(child)
+                if cv ~= nil then return cv end
+            end
+        end
+    end
+
+    -- 2. Check Data folder
+    local data = lp:FindFirstChild("Data") or lp:FindFirstChild("data")
+    if data then
+        local direct = data:FindFirstChild("Bounty/Honor")
+            or data:FindFirstChild("Bounty / Honor")
+            or data:FindFirstChild("Bounty")
+            or data:FindFirstChild("Honor")
+            or data:FindFirstChild("bounty")
+            or data:FindFirstChild("honor")
+        local val = ReadVal(direct)
+        if val ~= nil then return val end
+
+        for _, child in ipairs(data:GetChildren()) do
+            local n = child.Name:lower()
             if n:find("bounty") or n:find("honor") then
-                if child:IsA("ValueBase") then
-                    bVal = child.Value
-                    break
+                local cv = ReadVal(child)
+                if cv ~= nil then return cv end
+            end
+        end
+    end
+
+    -- 3. Check any other folder on LocalPlayer (Stats, PlayerStats, Profile, etc.)
+    for _, child in ipairs(lp:GetChildren()) do
+        local n = child.Name:lower()
+        if n:find("stat") or n:find("data") or n:find("profile") then
+            local direct = child:FindFirstChild("Bounty/Honor")
+                or child:FindFirstChild("Bounty / Honor")
+                or child:FindFirstChild("Bounty")
+                or child:FindFirstChild("Honor")
+            local val = ReadVal(direct)
+            if val ~= nil then return val end
+
+            for _, sub in ipairs(child:GetChildren()) do
+                local sn = sub.Name:lower()
+                if sn:find("bounty") or sn:find("honor") then
+                    local cv = ReadVal(sub)
+                    if cv ~= nil then return cv end
                 end
             end
         end
     end
 
-    -- 2. Check Data folder fallback
-    if not bVal then
-        local data = lp:FindFirstChild("Data")
-        if data then
-            for _, child in ipairs(data:GetChildren()) do
-                local n = child.Name:lower()
-                if n:find("bounty") or n:find("honor") then
-                    if child:IsA("ValueBase") then
-                        bVal = child.Value
-                        break
+    -- 4. Check player attributes
+    local attr = lp:GetAttribute("Bounty") or lp:GetAttribute("Honor") or lp:GetAttribute("Bounty/Honor") or lp:GetAttribute("Bounty / Honor")
+    if attr ~= nil and tostring(attr) ~= "" then return attr end
+    pcall(function()
+        for k, v in pairs(lp:GetAttributes()) do
+            local kl = tostring(k):lower()
+            if (kl:find("bounty") or kl:find("honor")) and v ~= nil then
+                attr = v
+                return
+            end
+        end
+    end)
+    if attr ~= nil and tostring(attr) ~= "" then return attr end
+
+    -- 5. Character attributes or values
+    if lp.Character then
+        local cattr = lp.Character:GetAttribute("Bounty") or lp.Character:GetAttribute("Honor")
+        if cattr ~= nil and tostring(cattr) ~= "" then return cattr end
+
+        for _, c in ipairs(lp.Character:GetChildren()) do
+            local cn = c.Name:lower()
+            if cn:find("bounty") or cn:find("honor") then
+                local cv = ReadVal(c)
+                if cv ~= nil then return cv end
+            end
+        end
+    end
+
+    -- 6. PlayerGui recursive search (C++ engine FindFirstChild recursive)
+    local pg = lp:FindFirstChild("PlayerGui")
+    if pg then
+        local queryTargets = {
+            "Bounty", "Honor", "Bounty/Honor", "Bounty / Honor",
+            "BountyLabel", "HonorLabel", "BountyText", "HonorText",
+            "BountyValue", "HonorValue", "PlayerBounty"
+        }
+        for _, name in ipairs(queryTargets) do
+            local found = pg:FindFirstChild(name, true)
+            if found then
+                local v = ReadVal(found)
+                if v ~= nil then return v end
+                if (found:IsA("TextLabel") or found:IsA("TextButton")) and found.Text ~= "" then
+                    local numStr = found.Text:match("[%d,.]+")
+                    if numStr and #numStr >= 4 then
+                        return numStr
                     end
                 end
             end
         end
     end
 
-    -- 3. Check player attributes
-    if not bVal then
-        pcall(function()
-            for attrName, attrVal in pairs(lp:GetAttributes()) do
-                local n = tostring(attrName):lower()
-                if n:find("bounty") or n:find("honor") then
-                    bVal = attrVal
-                    break
-                end
-            end
-        end)
-    end
-
-    -- 4. Check in-game PlayerGui Main HUD TextLabels
-    if not bVal then
-        pcall(function()
-            local pg = lp:FindFirstChild("PlayerGui")
-            local main = pg and pg:FindFirstChild("Main")
-            if main then
-                for _, desc in ipairs(main:GetDescendants()) do
-                    if desc:IsA("TextLabel") then
-                        local pName = desc.Parent and desc.Parent.Name:lower() or ""
-                        local dName = desc.Name:lower()
-                        if (dName:find("bounty") or pName:find("bounty") or dName:find("honor") or pName:find("honor")) then
-                            local numStr = desc.Text:match("[%d,.]+")
-                            if numStr and #numStr >= 4 then
-                                bVal = numStr
-                                break
-                            end
-                        end
-                    end
-                end
-            end
-        end)
-    end
-
-    return bVal
+    return nil
 end
 
 -- ============================================================
@@ -546,11 +603,11 @@ pcall(function()
         end)
 
         while not Library.Unloaded do
-            pcall(function()
-                local data = lp:FindFirstChild("Data")
-                local ls = lp:FindFirstChild("leaderstats")
+            local data = lp:FindFirstChild("Data") or lp:FindFirstChild("data")
+            local ls = lp:FindFirstChild("leaderstats") or lp:FindFirstChild("Leaderstats")
 
-                -- 1. Level
+            -- 1. Level
+            pcall(function()
                 local lvl = nil
                 if data and data:FindFirstChild("Level") then
                     lvl = data.Level.Value
@@ -559,17 +616,24 @@ pcall(function()
                 elseif lp:GetAttribute("Level") then
                     lvl = lp:GetAttribute("Level")
                 end
-                if lvl then lvlLabel:SetText("Level: " .. tostring(lvl)) end
+                if lvl then
+                    lvlLabel:SetText("Level: " .. tostring(lvl))
+                end
+            end)
 
-                -- 2. Bounty / Honor (Dedicated Deep Resolver)
+            -- 2. Bounty / Honor (Deep Multi-Source Resolver)
+            pcall(function()
                 local bVal = GetPlayerBounty()
-                if bVal then
-                    local num = tonumber(tostring(bVal):gsub("[^%d]", ""))
-                    if num and num > 0 then
+                if bVal ~= nil and tostring(bVal) ~= "" and tostring(bVal) ~= "--" then
+                    local rawDigits = tostring(bVal):gsub("[^%d]", "")
+                    local num = tonumber(rawDigits)
+                    if num then
                         if num >= 1000000 then
                             bountyLabel:SetText("Bounty / Honor: $" .. FormatWithCommas(num) .. string.format(" (%.2fM)", num / 1000000))
-                        else
+                        elseif num > 0 then
                             bountyLabel:SetText("Bounty / Honor: $" .. FormatWithCommas(num))
+                        else
+                            bountyLabel:SetText("Bounty / Honor: $0")
                         end
                     else
                         bountyLabel:SetText("Bounty / Honor: " .. tostring(bVal))
@@ -577,8 +641,10 @@ pcall(function()
                 else
                     bountyLabel:SetText("Bounty / Honor: --")
                 end
+            end)
 
-                -- 3. Beli
+            -- 3. Beli
+            pcall(function()
                 local beli = nil
                 if data and data:FindFirstChild("Beli") then
                     beli = data.Beli.Value
@@ -586,15 +652,12 @@ pcall(function()
                     beli = ls.Beli.Value
                 end
                 if beli then
-                    local num = tonumber(beli)
-                    if num then
-                        beliLabel:SetText("Beli: $" .. FormatWithCommas(num))
-                    else
-                        beliLabel:SetText("Beli: $" .. tostring(beli))
-                    end
+                    beliLabel:SetText("Beli: $" .. FormatWithCommas(beli))
                 end
+            end)
 
-                -- 4. Devil Fruit
+            -- 4. Devil Fruit
+            pcall(function()
                 local df = nil
                 if data and data:FindFirstChild("DevilFruit") then
                     df = tostring(data.DevilFruit.Value):gsub("-%w+", "")
@@ -606,13 +669,17 @@ pcall(function()
                 else
                     fruitLabel:SetText("Devil Fruit: None")
                 end
+            end)
 
-                -- 5. Faction / Team
+            -- 5. Faction / Team
+            pcall(function()
                 if lp.Team then
                     teamLabel:SetText("Faction: " .. tostring(lp.Team.Name))
                 end
+            end)
 
-                -- 6. Network Ping
+            -- 6. Network Ping
+            pcall(function()
                 local ping = 0
                 pcall(function()
                     ping = math.floor(Stats.Network.ServerStatsItem["Data Ping"]:GetValue())
@@ -621,11 +688,19 @@ pcall(function()
                     pcall(function() ping = math.floor(lp:GetNetworkPing() * 1000) end)
                 end
                 pingLabel:SetText("Network Ping: " .. tostring(ping) .. " ms")
-                fpsLabel:SetText("Client FPS: " .. tostring(currentFps) .. " FPS")
+            end)
 
+            -- 7. Client FPS
+            pcall(function()
+                fpsLabel:SetText("Client FPS: " .. tostring(currentFps) .. " FPS")
+            end)
+
+            -- 8. Server Uptime
+            pcall(function()
                 local elapsed = math.floor(os.clock() - startTime)
                 uptimeLabel:SetText("Server Uptime: " .. math.floor(elapsed / 60) .. "m " .. (elapsed % 60) .. "s")
             end)
+
             task.wait(1.5)
         end
 
